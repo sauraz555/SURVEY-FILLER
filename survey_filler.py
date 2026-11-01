@@ -49,6 +49,10 @@ DEFAULT_PERSONA = (
 
 NEXT_RE = re.compile(r"\b(next|continue|weiter|suivant|siguiente|avanti|pr[oó]ximo|volgende|proceed)\b|^\s*(>+|→|»)\s*$", re.I)
 SUBMIT_RE = re.compile(r"\b(submit|finish|done|send|complete|absenden|envoyer|enviar|terminer|fertig)\b", re.I)
+# Signs that a submit really went through (thank-you page or confirmation URL).
+DONE_TEXT_RE = re.compile(r"\bthank(s| you)\b|response has been recorded|has been (submitted|received)|"
+                          r"we(?:'ve| have) received|survey (is )?complete|danke|merci|gracias", re.I)
+DONE_URL_RE = re.compile(r"formResponse|thank|complete|confirm|success|finished", re.I)
 
 TEXT_OPS = {"text", "textarea", "email", "number", "tel", "url", "date", "time",
             "datetime-local", "month", "week", "range", "contenteditable"}
@@ -458,8 +462,33 @@ def find_button(page, pattern):
     return None
 
 
-def fill_page(page, llm, persona, history, overwrite, jev=None):
+def settle(page):
+    """Wait for client-rendered forms (e.g. Google Forms) to finish drawing."""
     page.wait_for_load_state("domcontentloaded")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except PWError:
+        pass  # pages with long-polling never go idle
+
+
+def submit_and_confirm(page, button):
+    url_before = page.url
+    button.click()
+    for _ in range(10):
+        page.wait_for_timeout(500)
+        try:
+            text = page.inner_text("body", timeout=2000)
+        except PWError:
+            continue
+        if DONE_TEXT_RE.search(text) or (page.url != url_before and DONE_URL_RE.search(page.url)):
+            print("Submitted - confirmation page detected.")
+            return True
+    print("Clicked Submit, but no confirmation appeared. Check the browser for errors.")
+    return False
+
+
+def fill_page(page, llm, persona, history, overwrite, jev=None):
+    settle(page)
     questions = scan(page)
     todo = [q for q in questions if overwrite or not q["answered"]]
     print(f"\nPage: {page.title()[:80]!r} - {len(questions)} questions found, {len(todo)} to fill")
@@ -567,10 +596,8 @@ def main():
                     print("  Page didn't change after Next (validation error?). Fix it in the browser.")
                 elif args.submit and (sub := find_button(page, SUBMIT_RE)):
                     print("  -> clicking Submit")
-                    sub.click()
-                    page.wait_for_timeout(3000)
-                    print("Submitted.")
-                    break
+                    if submit_and_confirm(page, sub):
+                        break
                 args.auto = False  # hand control back to the user
 
             try:
@@ -581,7 +608,9 @@ def main():
                 break
             if cmd in ("n", "s"):
                 btn = find_button(current(), NEXT_RE if cmd == "n" else SUBMIT_RE)
-                if btn:
+                if btn and cmd == "s":
+                    submit_and_confirm(current(), btn)
+                elif btn:
                     btn.click()
                     current().wait_for_timeout(1500)
                 else:
