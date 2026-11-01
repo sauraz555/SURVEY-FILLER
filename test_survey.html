@@ -4,34 +4,69 @@
 <meta charset="utf-8">
 <title>Test Survey</title>
 <style>
-  body { font-family: sans-serif; max-width: 720px; margin: 30px auto; }
+  body { font-family: sans-serif; max-width: 760px; margin: 30px auto; }
   .q { margin: 18px 0; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
   .styled input { opacity: 0; position: absolute; width: 0; height: 0; }
   .styled label { display: inline-block; padding: 4px 10px; border: 1px solid #999; border-radius: 12px; cursor: pointer; }
   .styled input:checked + span { font-weight: bold; color: green; }
   [role=radio], [role=checkbox] { display: inline-block; padding: 4px 10px; border: 1px solid #66a; margin: 2px; cursor: pointer; }
   [aria-checked=true] { background: #cce; }
-  [role=listbox] { border: 1px solid #66a; padding: 6px; cursor: pointer; display: inline-block; min-width: 160px; }
+  [role=listbox], [role=combobox] { border: 1px solid #66a; padding: 6px 12px; cursor: pointer; display: inline-block; min-width: 180px; background: #fff; text-align: left; }
   .popup { display: none; border: 1px solid #333; background: #fff; }
   .popup.open { display: block; }
+  .portal-menu { position: fixed; z-index: 9999; background: #fff; border: 1px solid #333; min-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+  .portal-menu [role=option] { padding: 6px 10px; cursor: pointer; }
+  .portal-menu [role=option]:hover { background: #eef; }
+  .slider-track { position: relative; width: 240px; height: 12px; background: #dde; border-radius: 6px; margin-top: 10px; cursor: pointer; }
+  .slider-thumb { position: absolute; top: -4px; width: 20px; height: 20px; border-radius: 50%; background: #448; cursor: pointer; }
+  [role=switch] { padding: 5px 14px; border: 1px solid #66a; border-radius: 14px; background: #eee; cursor: pointer; }
+  [role=switch][aria-checked=true] { background: #4a6; color: #fff; }
+  .rating button { margin: 2px; padding: 6px 12px; border: 1px solid #888; background: #fafafa; border-radius: 4px; cursor: pointer; }
+  .rating button.selected { background: #3366cc; color: #fff; }
+  .buckets { display: flex; gap: 12px; margin-top: 8px; }
+  .bucket-zone { flex: 1; min-height: 70px; border: 2px dashed #66a; border-radius: 6px; padding: 8px; background: #fafcff; }
+  .card-chip { display: inline-block; padding: 6px 10px; margin: 4px; background: #eef; border: 1px solid #77b; border-radius: 4px; cursor: grab; }
+  #cookie-banner { padding: 8px 12px; background: #f3f3f3; border: 1px solid #ccc; margin-bottom: 12px; font-size: 13px; }
   td, th { padding: 4px 8px; text-align: center; }
   .page { display: none; } .page.active { display: block; }
   .dnd li, .rank-list li { list-style: none; padding: 8px; margin: 4px 0; border: 1px dashed #888; background: #f6f6f6; cursor: grab; }
 </style>
 </head>
 <body>
+<div id="cookie-banner">
+  We use cookies. <button type="button">Accept all</button> <button type="button">Reject</button>
+</div>
 <h1>Customer Experience Survey</h1>
-<form id="f" onsubmit="event.preventDefault(); const fd = new FormData(this), o = {}; for (const k of new Set(fd.keys())) { const v = fd.getAll(k); o[k] = v.length > 1 ? v : v[0]; } document.body.innerHTML = '<h2 id=done>Thanks!</h2><pre>' + JSON.stringify(o, null, 1) + '</pre>';">
-<div class="page active" id="p1">
+<form id="f">
+<div class="page active" id="p0">
+  <h2>Welcome!</h2>
+  <p>This short survey takes 2 minutes.</p>
+  <button type="button" onclick="p0.classList.remove('active'); p1.classList.add('active')">Start Survey</button>
+</div>
+
+<div class="page" id="p1">
   <div class="q"><label for="name">What is your first name? *</label><br><input id="name" name="name" required></div>
   <div class="q"><label>Email address <input type="email" name="email"></label></div>
   <div class="q"><label for="age">Age</label> <input type="number" id="age" name="age" min="18" max="99"></div>
+  <div class="q">
+    <label for="sat_range">Overall satisfaction (0 to 10)</label><br>
+    <input type="range" id="sat_range" name="sat_range" min="0" max="10" step="1" value="5">
+  </div>
   <div class="q">
     <p>How often do you shop online?</p>
     <input type="radio" name="freq" value="daily"> Daily<br>
     <input type="radio" name="freq" value="weekly"> Weekly<br>
     <input type="radio" name="freq" value="monthly"> Monthly<br>
     <input type="radio" name="freq" value="rarely"> Rarely
+  </div>
+  <div class="q">
+    <p>Were you referred by a friend?</p>
+    <label><input type="radio" name="referred" value="no" onchange="toggleRef()"> No</label>
+    <label><input type="radio" name="referred" value="yes" onchange="toggleRef()"> Yes</label>
+    <div id="ref-wrap" style="display:none; margin-top:8px;">
+      <label for="ref_who">How did your friend tell you about us? *</label><br>
+      <input id="ref_who" name="ref_who">
+    </div>
   </div>
   <div class="q">
     <div>Which devices do you use? (select all that apply)</div>
@@ -42,6 +77,11 @@
   <div class="q">
     <label for="country">Country</label>
     <select id="country" name="country"><option value="">Select...</option><option value="in">India</option><option value="us">United States</option><option value="uk">United Kingdom</option></select>
+  </div>
+  <div class="q">
+    <div id="cb-q">Preferred contact channel (portal combobox)</div>
+    <button type="button" role="combobox" aria-labelledby="cb-q" aria-expanded="false" id="portal-cb">Select channel...</button>
+    <input type="hidden" name="contact_channel" id="contact_channel">
   </div>
   <button type="button" onclick="p1.classList.remove('active'); p2.classList.add('active')">Next</button>
 </div>
@@ -85,6 +125,44 @@
     <input type="hidden" name="payment" id="payment">
   </div>
   <div class="q">
+    <div id="sl-q">Monthly online budget ($0 - $100 custom ARIA slider)</div>
+    <div class="slider-track" id="sl-track">
+      <div class="slider-thumb" role="slider" tabindex="0" aria-labelledby="sl-q" aria-valuemin="0" aria-valuemax="100" aria-valuenow="20" id="sl-thumb" style="left: 20%;"></div>
+    </div>
+    <input type="hidden" name="aria_budget" id="aria_budget" value="20">
+  </div>
+  <div class="q">
+    <span id="sw-q">Subscribe to product updates?</span>
+    <button type="button" role="switch" aria-labelledby="sw-q" aria-checked="false" id="sw-btn">Off</button>
+    <input type="hidden" name="updates_opt_in" id="updates_opt_in" value="false">
+  </div>
+  <div class="q">
+    <div>How easy was checkout? (button scale)</div>
+    <div class="rating" id="btn-scale">
+      <button type="button" data-val="1">1 - Hard</button>
+      <button type="button" data-val="2">2 - Okay</button>
+      <button type="button" data-val="3">3 - Easy</button>
+      <button type="button" data-val="4">4 - Effortless</button>
+    </div>
+    <input type="hidden" name="checkout_ease" id="checkout_ease">
+  </div>
+  <div class="q">
+    <shadow-question id="sq"></shadow-question>
+    <input type="hidden" name="shadow_city" id="shadow_city">
+  </div>
+  <div class="q" id="bucket-q">
+    <div>Sort each item into the matching category</div>
+    <div id="card-pool">
+      <span class="card-chip" draggable="true" data-item="Apples">Apples</span>
+      <span class="card-chip" draggable="true" data-item="Laptop">Laptop</span>
+    </div>
+    <div class="buckets">
+      <div class="bucket-zone" data-bucket="Groceries"><strong>Groceries</strong></div>
+      <div class="bucket-zone" data-bucket="Electronics"><strong>Electronics</strong></div>
+    </div>
+    <input type="hidden" name="bucket_result" id="bucket_result">
+  </div>
+  <div class="q">
     <div>Rank these from most to least important (drag to reorder)</div>
     <ul id="nat" class="dnd">
       <li draggable="true">Price</li><li draggable="true">Quality</li><li draggable="true">Delivery time</li><li draggable="true">Brand</li>
@@ -106,14 +184,122 @@
   <button type="submit">Submit</button>
 </div>
 </form>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script>
+  // Conditional follow-up field on Page 1.
+  function toggleRef() {
+    const yes = document.querySelector('input[name="referred"][value="yes"]').checked;
+    document.getElementById('ref-wrap').style.display = yes ? 'block' : 'none';
+    document.getElementById('ref_who').required = yes;
+  }
+
+  // Portal combobox mounted on document.body only while open.
+  let portalEl = null;
+  const cbBtn = document.getElementById('portal-cb');
+  function closePortal() {
+    if (portalEl) { portalEl.remove(); portalEl = null; cbBtn.setAttribute('aria-expanded', 'false'); }
+  }
+  cbBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (portalEl) { closePortal(); return; }
+    cbBtn.setAttribute('aria-expanded', 'true');
+    portalEl = document.createElement('div');
+    portalEl.className = 'portal-menu';
+    portalEl.setAttribute('role', 'listbox');
+    const r = cbBtn.getBoundingClientRect();
+    portalEl.style.left = r.left + 'px';
+    portalEl.style.top = (r.bottom + 2) + 'px';
+    for (const [val, label] of [['email', 'Email'], ['sms', 'SMS / Text'], ['whatsapp', 'WhatsApp']]) {
+      const opt = document.createElement('div');
+      opt.setAttribute('role', 'option');
+      opt.dataset.value = val;
+      opt.textContent = label;
+      opt.addEventListener('click', ev => {
+        ev.stopPropagation();
+        cbBtn.textContent = label;
+        document.getElementById('contact_channel').value = val;
+        closePortal();
+      });
+      portalEl.appendChild(opt);
+    }
+    document.body.appendChild(portalEl);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePortal(); });
+
+  // Custom ARIA slider.
+  const slTrack = document.getElementById('sl-track');
+  const slThumb = document.getElementById('sl-thumb');
+  function setSlider(v) {
+    v = Math.max(0, Math.min(100, Math.round(v)));
+    slThumb.setAttribute('aria-valuenow', String(v));
+    slThumb.style.left = v + '%';
+    document.getElementById('aria_budget').value = String(v);
+  }
+  slTrack.addEventListener('click', e => {
+    const r = slTrack.getBoundingClientRect();
+    setSlider(((e.clientX - r.left) / r.width) * 100);
+  });
+  slThumb.addEventListener('keydown', e => {
+    const cur = +slThumb.getAttribute('aria-valuenow');
+    if (e.key === 'ArrowRight') setSlider(cur + 1);
+    if (e.key === 'ArrowLeft') setSlider(cur - 1);
+  });
+
+  // ARIA switch.
+  const swBtn = document.getElementById('sw-btn');
+  swBtn.addEventListener('click', () => {
+    const next = swBtn.getAttribute('aria-checked') !== 'true';
+    swBtn.setAttribute('aria-checked', String(next));
+    swBtn.textContent = next ? 'On' : 'Off';
+    document.getElementById('updates_opt_in').value = String(next);
+  });
+
+  // Button-group rating strip.
+  document.querySelectorAll('#btn-scale button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#btn-scale button').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+    document.getElementById('checkout_ease').value = b.dataset.val;
+  }));
+
+  // Open Shadow DOM custom element.
+  class ShadowQuestion extends HTMLElement {
+    connectedCallback() {
+      const root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = `<label for="sc">City (Shadow DOM input)</label><br><input id="sc" placeholder="Enter city">`;
+      root.getElementById('sc').addEventListener('input', e => {
+        document.getElementById('shadow_city').value = e.target.value;
+      });
+    }
+  }
+  customElements.define('shadow-question', ShadowQuestion);
+
+  // Drag-into-bucket card sort.
+  let draggedChip = null;
+  const syncBuckets = () => {
+    const res = {};
+    document.querySelectorAll('.bucket-zone').forEach(z => {
+      res[z.dataset.bucket] = [...z.querySelectorAll('.card-chip')].map(c => c.dataset.item);
+    });
+    document.getElementById('bucket_result').value = JSON.stringify(res);
+  };
+  document.querySelectorAll('.card-chip').forEach(c => {
+    c.addEventListener('dragstart', e => { draggedChip = c; e.dataTransfer.setData('text/plain', c.dataset.item); });
+  });
+  document.querySelectorAll('.bucket-zone').forEach(z => {
+    z.addEventListener('dragover', e => e.preventDefault());
+    z.addEventListener('drop', e => {
+      e.preventDefault();
+      if (draggedChip) { z.appendChild(draggedChip); draggedChip = null; syncBuckets(); }
+    });
+  });
+
+  // Rankings.
   const sync = () => {
     rank_native.value = [...nat.children].map(li => li.textContent).join(' > ');
     rank_sortable.value = [...srt.children].map(li => li.textContent).join(' > ');
   };
   sync();
-  // Native HTML5 drag and drop.
   let dragEl;
   nat.addEventListener('dragstart', e => { dragEl = e.target.closest('li'); e.dataTransfer.setData('text/plain', ''); });
   nat.addEventListener('dragover', e => e.preventDefault());
@@ -125,8 +311,7 @@
     nat.insertBefore(dragEl, e.clientY - r.top < r.height / 2 ? t : t.nextSibling);
     sync();
   });
-  // Mouse-event based sortable, like many survey platforms.
-  Sortable.create(srt, { forceFallback: true, animation: 0, onEnd: sync });
+  if (window.Sortable) Sortable.create(srt, { forceFallback: true, animation: 0, onEnd: sync });
 
   document.querySelectorAll('[role=radio]').forEach(r => r.addEventListener('click', () => {
     document.querySelectorAll('#aria-group [role=radio]').forEach(x => x.setAttribute('aria-checked', 'false'));
@@ -142,6 +327,16 @@
       lbpop.classList.remove('open');
       e.stopPropagation();
     } else lbpop.classList.toggle('open');
+  });
+
+  document.getElementById('f').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const fd = new FormData(this), o = {};
+    for (const k of new Set(fd.keys())) {
+      const v = fd.getAll(k);
+      o[k] = v.length > 1 ? v : v[0];
+    }
+    document.body.innerHTML = '<h2 id="done">Thanks!</h2><pre id="payload">' + JSON.stringify(o, null, 2) + '</pre>';
   });
 </script>
 </body>

@@ -4,8 +4,9 @@
 !.env.example
 persona.txt
 
-# Browser profile (cookies, logins)
+# Browser profiles (cookies, logins)
 .browser-profile/
+.browser-profile-cdp/
 
 # Python
 __pycache__/
