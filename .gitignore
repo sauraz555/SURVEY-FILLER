@@ -1,0 +1,13 @@
+# Secrets and personal data
+.env
+.env.*
+!.env.example
+persona.txt
+
+# Browser profile (cookies, logins)
+.browser-profile/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

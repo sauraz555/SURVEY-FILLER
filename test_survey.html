@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test Survey</title>
+<style>
+  body { font-family: sans-serif; max-width: 720px; margin: 30px auto; }
+  .q { margin: 18px 0; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
+  .styled input { opacity: 0; position: absolute; width: 0; height: 0; }
+  .styled label { display: inline-block; padding: 4px 10px; border: 1px solid #999; border-radius: 12px; cursor: pointer; }
+  .styled input:checked + span { font-weight: bold; color: green; }
+  [role=radio], [role=checkbox] { display: inline-block; padding: 4px 10px; border: 1px solid #66a; margin: 2px; cursor: pointer; }
+  [aria-checked=true] { background: #cce; }
+  [role=listbox] { border: 1px solid #66a; padding: 6px; cursor: pointer; display: inline-block; min-width: 160px; }
+  .popup { display: none; border: 1px solid #333; background: #fff; }
+  .popup.open { display: block; }
+  td, th { padding: 4px 8px; text-align: center; }
+  .page { display: none; } .page.active { display: block; }
+  .dnd li, .rank-list li { list-style: none; padding: 8px; margin: 4px 0; border: 1px dashed #888; background: #f6f6f6; cursor: grab; }
+</style>
+</head>
+<body>
+<h1>Customer Experience Survey</h1>
+<form id="f" onsubmit="event.preventDefault(); const fd = new FormData(this), o = {}; for (const k of new Set(fd.keys())) { const v = fd.getAll(k); o[k] = v.length > 1 ? v : v[0]; } document.body.innerHTML = '<h2 id=done>Thanks!</h2><pre>' + JSON.stringify(o, null, 1) + '</pre>';">
+<div class="page active" id="p1">
+  <div class="q"><label for="name">What is your first name? *</label><br><input id="name" name="name" required></div>
+  <div class="q"><label>Email address <input type="email" name="email"></label></div>
+  <div class="q"><label for="age">Age</label> <input type="number" id="age" name="age" min="18" max="99"></div>
+  <div class="q">
+    <p>How often do you shop online?</p>
+    <input type="radio" name="freq" value="daily"> Daily<br>
+    <input type="radio" name="freq" value="weekly"> Weekly<br>
+    <input type="radio" name="freq" value="monthly"> Monthly<br>
+    <input type="radio" name="freq" value="rarely"> Rarely
+  </div>
+  <div class="q">
+    <div>Which devices do you use? (select all that apply)</div>
+    <label><input type="checkbox" name="dev_phone"> Phone</label>
+    <label><input type="checkbox" name="dev_laptop"> Laptop</label>
+    <label><input type="checkbox" name="dev_tablet"> Tablet</label>
+  </div>
+  <div class="q">
+    <label for="country">Country</label>
+    <select id="country" name="country"><option value="">Select...</option><option value="in">India</option><option value="us">United States</option><option value="uk">United Kingdom</option></select>
+  </div>
+  <button type="button" onclick="p1.classList.remove('active'); p2.classList.add('active')">Next</button>
+</div>
+
+<div class="page" id="p2">
+  <div class="q">
+    <p>Rate the following aspects of our service</p>
+    <table>
+      <thead><tr><th></th><th>Poor</th><th>Fair</th><th>Good</th><th>Excellent</th></tr></thead>
+      <tbody>
+        <tr><td>Price</td><td><input type="radio" name="m_price" value="1"></td><td><input type="radio" name="m_price" value="2"></td><td><input type="radio" name="m_price" value="3"></td><td><input type="radio" name="m_price" value="4"></td></tr>
+        <tr><td>Delivery speed</td><td><input type="radio" name="m_del" value="1"></td><td><input type="radio" name="m_del" value="2"></td><td><input type="radio" name="m_del" value="3"></td><td><input type="radio" name="m_del" value="4"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="q styled">
+    <div>Would you recommend us to a friend?</div>
+    <label><input type="radio" name="rec" value="yes"><span>Yes</span></label>
+    <label><input type="radio" name="rec" value="maybe"><span>Maybe</span></label>
+    <label><input type="radio" name="rec" value="no"><span>No</span></label>
+  </div>
+  <div class="q">
+    <div id="aria-q">Which feature matters most? (custom widget)</div>
+    <div role="radiogroup" aria-labelledby="aria-q" id="aria-group">
+      <div role="radio" aria-checked="false" data-value="price">Low prices</div>
+      <div role="radio" aria-checked="false" data-value="speed">Fast delivery</div>
+      <div role="radio" aria-checked="false" data-value="support">Good support</div>
+    </div>
+    <input type="hidden" name="feature" id="feature">
+  </div>
+  <div class="q">
+    <div id="lb-q">Preferred payment method (custom dropdown)</div>
+    <div role="listbox" aria-labelledby="lb-q" id="lb">
+      <div role="option" data-value="" aria-selected="true">Choose</div>
+      <div class="popup" id="lbpop">
+        <div role="option" data-value="card">Credit card</div>
+        <div role="option" data-value="upi">UPI</div>
+        <div role="option" data-value="cod">Cash on delivery</div>
+      </div>
+    </div>
+    <input type="hidden" name="payment" id="payment">
+  </div>
+  <div class="q">
+    <div>Rank these from most to least important (drag to reorder)</div>
+    <ul id="nat" class="dnd">
+      <li draggable="true">Price</li><li draggable="true">Quality</li><li draggable="true">Delivery time</li><li draggable="true">Brand</li>
+    </ul>
+    <input type="hidden" name="rank_native" id="rank_native">
+  </div>
+  <div class="q">
+    <div>Order these shops by preference (drag to reorder)</div>
+    <ul id="srt" class="rank-list">
+      <li>Amazon</li><li>Flipkart</li><li>Myntra</li><li>Local store</li>
+    </ul>
+    <input type="hidden" name="rank_sortable" id="rank_sortable">
+  </div>
+  <div class="q">
+    <label for="cats">Which categories do you buy? (hold Ctrl to pick several)</label><br>
+    <select id="cats" name="cats" multiple size="4"><option value="elec">Electronics</option><option value="fash">Fashion</option><option value="groc">Groceries</option><option value="books">Books</option></select>
+  </div>
+  <div class="q"><label for="comments">Any other comments?</label><br><textarea id="comments" name="comments" rows="3" cols="60"></textarea></div>
+  <button type="submit">Submit</button>
+</div>
+</form>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script>
+  const sync = () => {
+    rank_native.value = [...nat.children].map(li => li.textContent).join(' > ');
+    rank_sortable.value = [...srt.children].map(li => li.textContent).join(' > ');
+  };
+  sync();
+  // Native HTML5 drag and drop.
+  let dragEl;
+  nat.addEventListener('dragstart', e => { dragEl = e.target.closest('li'); e.dataTransfer.setData('text/plain', ''); });
+  nat.addEventListener('dragover', e => e.preventDefault());
+  nat.addEventListener('drop', e => {
+    e.preventDefault();
+    const t = e.target.closest('li');
+    if (!t || t === dragEl) return;
+    const r = t.getBoundingClientRect();
+    nat.insertBefore(dragEl, e.clientY - r.top < r.height / 2 ? t : t.nextSibling);
+    sync();
+  });
+  // Mouse-event based sortable, like many survey platforms.
+  Sortable.create(srt, { forceFallback: true, animation: 0, onEnd: sync });
+
+  document.querySelectorAll('[role=radio]').forEach(r => r.addEventListener('click', () => {
+    document.querySelectorAll('#aria-group [role=radio]').forEach(x => x.setAttribute('aria-checked', 'false'));
+    r.setAttribute('aria-checked', 'true');
+    document.getElementById('feature').value = r.dataset.value;
+  }));
+  lb.addEventListener('click', e => {
+    const opt = e.target.closest('#lbpop [role=option]');
+    if (opt) {
+      lb.firstElementChild.textContent = opt.textContent;
+      lb.firstElementChild.dataset.value = opt.dataset.value;
+      payment.value = opt.dataset.value;
+      lbpop.classList.remove('open');
+      e.stopPropagation();
+    } else lbpop.classList.toggle('open');
+  });
+</script>
+</body>
+</html>
